@@ -1,7 +1,12 @@
 .gitkeep
 bird.png
 gameBackground.png
-img.png
 img_1.png
+level.png
+lose_bg.png
+pause.png
 pig.png
+settings.png
 slingshot.png
+win_background.png
+woodBlock.png
