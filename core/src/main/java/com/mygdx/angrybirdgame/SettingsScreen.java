@@ -1,9 +1,12 @@
 package com.mygdx.angrybirdgame;
+
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
@@ -21,6 +24,13 @@ public class SettingsScreen implements Screen {
         this.previousScreen = previousScreen;  // Store reference to the previous screen
         stage = new Stage(new ScreenViewport());
         skin = new Skin(Gdx.files.internal("uiskin.json"));  // Use LibGDX default skin
+
+        // Load settings.png texture
+        Texture settingsTexture = new Texture(Gdx.files.internal("settings.png"));
+        Image settingsImage = new Image(settingsTexture);// Create an Image actor
+
+        // Scale the image to fill the screen
+        settingsImage.setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         // Label for Settings (just for display)
         Label titleLabel = new Label("Settings", skin);
@@ -47,10 +57,11 @@ public class SettingsScreen implements Screen {
         });
 
         // Add components to the stage
-        stage.addActor(titleLabel);
+        stage.addActor(settingsImage);  // Add the settings image (fills screen)
+        stage.addActor(titleLabel);     // Add the label
         stage.addActor(soundButton);
         stage.addActor(musicButton);
-        stage.addActor(backButton);
+        stage.addActor(backButton);  // Add the sound image to the stage
 
         Gdx.input.setInputProcessor(stage);  // Set the stage to handle input
     }
