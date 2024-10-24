@@ -19,8 +19,8 @@ public class HomeScreen implements Screen {
     private Skin skin;
     private TextButton levelsButton;
     private SpriteBatch batch;
-    private Sprite bg;  // Declare bg as a class variable
-    private Texture bgt;  // Declare bgt as a class variable
+    private Sprite bg; 
+    private Texture bgt;  
 
     public HomeScreen(MyAngryBirds game) {
         this.game = game;
@@ -95,7 +95,7 @@ public class HomeScreen implements Screen {
 
         batch.begin();  // Begin SpriteBatch
         bg.draw(batch);  // Draw background sprite
-        batch.end();  // End SpriteBatch
+        batch.end();  
 
         stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));  // Update stage actors
         stage.draw();  // Draw the stage (which includes buttons)
@@ -117,8 +117,8 @@ public class HomeScreen implements Screen {
 
     @Override
     public void dispose() {
-        batch.dispose();  // Dispose the SpriteBatch
-        bgt.dispose();  // Dispose the background texture
+        batch.dispose();  
+        bgt.dispose(); 
         stage.dispose();
         skin.dispose();
     }
