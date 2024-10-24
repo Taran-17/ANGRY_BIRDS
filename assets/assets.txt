@@ -1,4 +1,3 @@
-.gitkeep
 bird.png
 gameBackground.png
 img_1.png
