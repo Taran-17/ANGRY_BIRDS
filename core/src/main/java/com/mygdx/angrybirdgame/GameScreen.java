@@ -16,8 +16,8 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 public class GameScreen implements Screen {
     private MyAngryBirds game;
     private SpriteBatch batch;
-    private Texture backgroundTexture, birdTexture, pigTexture, slingshotTexture;
-    private Sprite birdSprite, pigSprite, slingshotSprite,bgSprite;
+    private Texture backgroundTexture, birdTexture, pigTexture, slingshotTexture, woodBlockTexture;
+    private Sprite birdSprite, pigSprite, slingshotSprite, woodBlock1Sprite, woodBlock2Sprite, woodBlock3Sprite, bgSprite;
     private Stage stage;
     private Skin skin;
 
@@ -25,37 +25,55 @@ public class GameScreen implements Screen {
         this.game = game;
         batch = new SpriteBatch();
 
-        // Load textures for static game elements
+        // Load textures
         backgroundTexture = new Texture("gameBackground.png");
         birdTexture = new Texture("bird.png");
         pigTexture = new Texture("pig.png");
         slingshotTexture = new Texture("slingshot.png");
+        woodBlockTexture = new Texture("woodBlock.png");
 
         // Initialize sprites
         bgSprite = new Sprite(backgroundTexture);
         birdSprite = new Sprite(birdTexture);
         pigSprite = new Sprite(pigTexture);
         slingshotSprite = new Sprite(slingshotTexture);
+        woodBlock1Sprite = new Sprite(woodBlockTexture);
+        woodBlock2Sprite = new Sprite(woodBlockTexture);
+        woodBlock3Sprite = new Sprite(woodBlockTexture);
 
-        // Set initial position for the bird
+        // Set sizes
         bgSprite.setSize(1280, 720);
-        birdSprite.setSize(50, 50);
-        pigSprite.setSize(50, 50);
-        slingshotSprite.setSize(100, 300);
-        birdSprite.setPosition(1, 0);
-        pigSprite.setPosition(1200, 0);
+        birdSprite.setSize(80, 80);
+        pigSprite.setSize(100, 100);
+        slingshotSprite.setSize(150, 250);
+        woodBlock1Sprite.setSize(150, 150);
+        woodBlock2Sprite.setSize(150, 150);
+        woodBlock3Sprite.setSize(150, 100);
+
         slingshotSprite.setPosition(100, 0);
+        birdSprite.setPosition(slingshotSprite.getX() + slingshotSprite.getWidth() / 2 - birdSprite.getWidth() / 2,
+                slingshotSprite.getY() + slingshotSprite.getHeight() - birdSprite.getHeight() / 2);
+
+        woodBlock1Sprite.setPosition(800, 100);
+        woodBlock2Sprite.setPosition(800, 200 );
+        woodBlock3Sprite.setPosition(800, 200 );
+
+        pigSprite.setPosition(800 + woodBlock1Sprite.getWidth() / 2 - pigSprite.getWidth() / 2,
+                woodBlock3Sprite.getY() + woodBlock3Sprite.getHeight()); 
 
         stage = new Stage(new ScreenViewport());
-        skin = new Skin(Gdx.files.internal("uiskin.json"));  // Load default skin
+        skin = new Skin(Gdx.files.internal("uiskin.json"));
 
-        // Create UI buttons
         TextButton settingsButton = new TextButton("Settings", skin);
         TextButton pauseButton = new TextButton("Pause", skin);
+        TextButton triggerWinButton = new TextButton("Win", skin);
+        TextButton triggerLoseButton = new TextButton("Lose", skin);
+
         pauseButton.setPosition(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 50);
         settingsButton.setPosition(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 100);
+        triggerWinButton.setPosition(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 150);
+        triggerLoseButton.setPosition(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 200);
 
-        // Add click listeners
         settingsButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -68,15 +86,30 @@ public class GameScreen implements Screen {
                 game.setScreen(new PauseScreen(game));
             }
         });
+        triggerWinButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new WinScreen(game));  
+            }
+        });
+        triggerLoseButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new LoseScreen(game));  
+            }
+        });
 
         stage.addActor(pauseButton);
         stage.addActor(settingsButton);
+        stage.addActor(triggerWinButton);
+        stage.addActor(triggerLoseButton);
 
-        Gdx.input.setInputProcessor(stage);  // Set input processor to handle buttons
+        Gdx.input.setInputProcessor(stage);  
     }
 
     @Override
-    public void show() {}
+    public void show() {
+    }
 
     @Override
     public void render(float delta) {
@@ -84,29 +117,17 @@ public class GameScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         batch.begin();
-        bgSprite.draw(batch);  // Draw background
-        slingshotSprite.draw(batch);  // Draw slingshot
-        birdSprite.draw(batch);  // Draw bird
-        pigSprite.draw(batch);  // Draw pig
+        bgSprite.draw(batch); 
+        slingshotSprite.draw(batch);  
+        woodBlock1Sprite.draw(batch);  
+        woodBlock2Sprite.draw(batch);  
+        woodBlock3Sprite.draw(batch);  
+        pigSprite.draw(batch); 
+        birdSprite.draw(batch); 
         batch.end();
 
-        stage.act(Gdx.graphics.getDeltaTime());  // Handle stage updates
-        stage.draw();  // Draw the UI (Pause button)
-
-        handleInput();  // Handle input for bird interaction
-    }
-
-    private void handleInput() {
-        if (Gdx.input.isTouched()) {
-            float touchX = Gdx.input.getX();
-            float touchY = Gdx.graphics.getHeight() - Gdx.input.getY(); // Invert Y coordinate
-
-            // Check if the bird is clicked
-            if (birdSprite.getBoundingRectangle().contains(touchX, touchY)) {
-                // Move bird to touch position
-                birdSprite.setPosition(touchX - birdSprite.getWidth() / 2, touchY - birdSprite.getHeight() / 2);
-            }
-        }
+        stage.act(Gdx.graphics.getDeltaTime());
+        stage.draw();  // Draw the UI
     }
 
     @Override
@@ -115,13 +136,16 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void pause() {}
+    public void pause() {
+    }
 
     @Override
-    public void resume() {}
+    public void resume() {
+    }
 
     @Override
-    public void hide() {}
+    public void hide() {
+    }
 
     @Override
     public void dispose() {
@@ -129,6 +153,7 @@ public class GameScreen implements Screen {
         birdTexture.dispose();
         pigTexture.dispose();
         slingshotTexture.dispose();
+        woodBlockTexture.dispose();
         stage.dispose();
         skin.dispose();
         batch.dispose();
