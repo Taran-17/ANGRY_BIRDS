@@ -1,23 +1,38 @@
 package com.mygdx.angrybirdgame;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.graphics.Texture;
 
 public class LevelsScreen implements Screen {
     private final MyAngryBirds game;
     private Stage stage;
     private Skin skin;
+    private Texture levelTexture;
+    private Image levelImage;
 
     public LevelsScreen(final MyAngryBirds game) {
         this.game = game;
         stage = new Stage();
         skin = new Skin(Gdx.files.internal("uiskin.json"));
+
+        // Load the level image
+        levelTexture = new Texture(Gdx.files.internal("level.png"));
+        levelImage = new Image(levelTexture);
+
+        // Set the image to fill the screen
+        levelImage.setFillParent(true);
+
+        // Add the image to the stage
+        stage.addActor(levelImage);
 
         Table table = new Table();
         table.setFillParent(true);
@@ -88,6 +103,6 @@ public class LevelsScreen implements Screen {
     public void dispose() {
         stage.dispose();
         skin.dispose();
+        levelTexture.dispose();
     }
 }
-
