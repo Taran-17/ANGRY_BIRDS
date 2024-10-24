@@ -1,0 +1,7 @@
+.gitkeep
+bird.png
+gameBackground.png
+img.png
+img_1.png
+pig.png
+slingshot.png
