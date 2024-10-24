@@ -1,69 +1,65 @@
 package com.mygdx.angrybirdgame;
 
-import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 
-public class SettingsScreen implements Screen {
+public class PauseScreen implements Screen {
+
     private MyAngryBirds game;
     private Stage stage;
     private Skin skin;
-    private Screen previousScreen;  // To track where we came from
+    private Texture pauseTexture;
+    private Image pauseImage;
 
-    public SettingsScreen(MyAngryBirds game, Screen previousScreen) {
+    public PauseScreen(MyAngryBirds game) {
         this.game = game;
-        this.previousScreen = previousScreen;  // Store reference to the previous screen
         stage = new Stage(new ScreenViewport());
-        skin = new Skin(Gdx.files.internal("uiskin.json"));  // Use LibGDX default skin
+        skin = new Skin(Gdx.files.internal("uiskin.json"));
 
-        // Load settings.png texture
-        Texture settingsTexture = new Texture(Gdx.files.internal("settings.png"));
-        Image settingsImage = new Image(settingsTexture);// Create an Image actor
+        // Load the pause image
+        pauseTexture = new Texture(Gdx.files.internal("pause.png"));
+        pauseImage = new Image(pauseTexture);
+        pauseImage.setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        // Scale the image to fill the screen
-        settingsImage.setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
-        // Label for Settings (just for display)
-        Label titleLabel = new Label("Settings", skin);
-        titleLabel.setPosition(Gdx.graphics.getWidth() / 2f - 50, Gdx.graphics.getHeight() - 100);
-
-        // Example buttons (for now they are placeholders for options like sound/music)
-        TextButton soundButton = new TextButton("Sound: On", skin);
-        TextButton musicButton = new TextButton("Music: On", skin);
-
-        // Back button to return to previous screen
-        TextButton backButton = new TextButton("Back", skin);
-
-        // Position the buttons
-        soundButton.setPosition(Gdx.graphics.getWidth() / 2f - 100, 300);
-        musicButton.setPosition(Gdx.graphics.getWidth() / 2f - 100, 200);
-        backButton.setPosition(Gdx.graphics.getWidth() / 2f - 100, 100);
-
-        // Add click listener for Back button
-        backButton.addListener(new ClickListener() {
+        // Resume button
+        TextButton resumeButton = new TextButton("Resume", skin);
+        resumeButton.setPosition(Gdx.graphics.getWidth() / 2f - 100, 300);
+        resumeButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(previousScreen);  // Go back to the previous screen
+                game.setScreen(new GameScreen(game));  // Transition back to GameScreen
             }
         });
 
-        // Add components to the stage
-        stage.addActor(settingsImage);  // Add the settings image (fills screen)
-        stage.addActor(titleLabel);     // Add the label
-        stage.addActor(soundButton);
-        stage.addActor(musicButton);
-        stage.addActor(backButton);  // Add the sound image to the stage
+        // Quit button
+        TextButton quitButton = new TextButton("Quit", skin);
+        quitButton.setPosition(Gdx.graphics.getWidth() / 2f - 100, 200);
+        quitButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                game.setScreen(new HomeScreen(game));  // Transition to HomeScreen
+            }
+        });
 
-        Gdx.input.setInputProcessor(stage);  // Set the stage to handle input
+        // Add the image to the stage as a background
+        stage.addActor(pauseImage);
+
+        // Add buttons on top of the image
+        stage.addActor(resumeButton);
+        stage.addActor(quitButton);
+
+        Gdx.input.setInputProcessor(stage);  // Set the stage as the input processor
     }
 
     @Override
@@ -81,6 +77,7 @@ public class SettingsScreen implements Screen {
     @Override
     public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
+        pauseImage.setSize(width, height);  // Ensure the image scales with the window
     }
 
     @Override
@@ -96,5 +93,6 @@ public class SettingsScreen implements Screen {
     public void dispose() {
         stage.dispose();
         skin.dispose();
+        pauseTexture.dispose();  // Dispose of the texture to free resources
     }
 }
