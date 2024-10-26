@@ -52,7 +52,7 @@ public class SettingsScreen implements Screen {
         backButton.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(previousScreen);  // Go back to the previous screen
+                game.setScreen(new HomeScreen(game)); // Go back to HomeScreen
             }
         });
 
