@@ -38,7 +38,7 @@ public class LevelsScreen implements Screen {
         table.setFillParent(true);
 
         // Add a button for each level
-        for (int i = 1; i <= 5; i++) {
+        for (int i = 1; i <= 3; i++) {
             final int level = i;
             TextButton levelButton;
 
@@ -51,7 +51,24 @@ public class LevelsScreen implements Screen {
                         game.setScreen(new GameScreen(game)); // Switch to GameScreen
                     }
                 });
-            } else {
+            } else if ( level == 2) {
+                levelButton = new TextButton("Level " + level, skin, "default");
+                levelButton.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        game.setScreen(new GameScreen2(game));
+                    }
+                });
+            } else if ( level == 3) {
+                levelButton = new TextButton("Level " + level, skin, "default");
+                levelButton.addListener(new ClickListener() {
+                    @Override
+                    public void clicked(InputEvent event, float x, float y) {
+                        game.setScreen(new GameScreen3(game));
+                    }
+                });
+            }
+            else {
                 levelButton = new TextButton("Level " + level, skin, "default");
                 levelButton.setDisabled(true); // Lock other levels
             }
