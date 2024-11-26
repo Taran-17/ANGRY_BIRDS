@@ -6,11 +6,14 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.*;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 public class GameScreen implements Screen {
@@ -20,48 +23,52 @@ public class GameScreen implements Screen {
     private final Sprite slingshotSprite, bgSprite, baseSprite, slingshotBaseSprite;
     private final bird birdEntity;
     private final Pig[] pigEntities;
-    private final Structure structure; // Structure object to manage blocks
+    private final Structure structure;
     private final Stage stage;
     private final Skin skin;
+
+    // Box2D World and Physics Variables
+    private World world;
+    private Box2DDebugRenderer debugRenderer;
+    private Body birdBody;
+    private Body slingshotBody;
+    private Array<Body> pigBodies;
+    private Array<Body> structureBodies;
 
     public GameScreen(MyAngryBirds game) {
         this.game = game;
         batch = new SpriteBatch();
 
-        // Load textures
+        // Initialize Box2D world
+        world = new World(new Vector2(0, -9.8f), true);
+        debugRenderer = new Box2DDebugRenderer();
+
+        // Load textures and initialize sprites
         backgroundTexture = new Texture("gameBackground.png");
         slingshotTexture = new Texture("slingshot.png");
         baseTexture = new Texture("base.png");
-        slingshotBaseTexture = new Texture("base.png");  // Slingshot base texture
+        slingshotBaseTexture = new Texture("base.png");
 
-        // Initialize sprites
         bgSprite = new Sprite(backgroundTexture);
         slingshotSprite = new Sprite(slingshotTexture);
         baseSprite = new Sprite(baseTexture);
-        slingshotBaseSprite = new Sprite(slingshotBaseTexture);  // Slingshot base sprite
+        slingshotBaseSprite = new Sprite(slingshotBaseTexture);
 
-        // Initialize bird entity
         birdEntity = new bird(new Sprite(new Texture("bird.png")));
         birdEntity.setSize(50, 50);
-
-        // Initialize pig entities
         pigEntities = new Pig[2];
         pigEntities[0] = new Pig(750, 170);
         pigEntities[1] = new Pig(900, 270);
-
-        // Initialize the Structure (with 5 wood blocks, 3 glass blocks, and 2 glass F blocks)
         structure = new Structure(5, 3, 2);
 
-        // Set sizes for sprites
         bgSprite.setSize(1280, 720);
         slingshotSprite.setSize(100, 150);
         baseSprite.setSize(400, 50);
-        slingshotBaseSprite.setSize(150, 50); // Adjust size of slingshot base as needed
+        slingshotBaseSprite.setSize(150, 50);
 
-        // Initialize positions
         initPositions();
+        createPhysicsBodies();
 
-        // Stage and UI setup
         stage = new Stage(new ScreenViewport());
         skin = new Skin(Gdx.files.internal("uiskin.json"));
         setupUI();
@@ -70,23 +77,99 @@ public class GameScreen implements Screen {
     }
 
     private void initPositions() {
-        // Position slingshot base (on the ground)
-        slingshotBaseSprite.setPosition(120, 80);  // Adjust position as needed
+        slingshotBaseSprite.setPosition(120, 80);
+        slingshotSprite.setPosition(145, 130);
+        birdEntity.setPosition(160, 200);
+        baseSprite.setPosition(700, 100);
+        structure.setPositions(850, 130);
+    }
 
-        int base_x = 100;
-        int base_y = 70;
+    private void createPhysicsBodies() {
+        // Create bird body as kinematic initially (stable on slingshot)
+        birdBody = createKinematicBody(
+                slingshotSprite.getX() + slingshotSprite.getWidth() / 2,
+                slingshotSprite.getY() + slingshotSprite.getHeight() - 25, // Place the bird above the slingshot
+                25
+        );
 
-        // Position slingshot (above the base)
-        slingshotSprite.setPosition(base_x + slingshotBaseSprite.getWidth() / 2 - slingshotSprite.getWidth() / 2,
-                base_y + slingshotBaseSprite.getHeight());
+        // Create slingshot body
+        slingshotBody = createStaticBody(
+                slingshotSprite.getX() + slingshotSprite.getWidth() / 2,
+                slingshotSprite.getY() + slingshotSprite.getHeight() / 2,
+                slingshotSprite.getWidth() / 2,
+                slingshotSprite.getHeight() / 2
+        );
 
-        // Position bird on the slingshot
-        birdEntity.setPosition(slingshotSprite.getX() + slingshotSprite.getWidth() / 2 - birdEntity.getSprite().getWidth() / 2,
-                slingshotSprite.getY() + slingshotSprite.getHeight() - birdEntity.getSprite().getHeight() / 2);
+        // Create pig bodies
+        pigBodies = new Array<>();
+        for (Pig pig : pigEntities) {
+            pigBodies.add(createStaticBody(pig.getX(), pig.getY(), 17.5f, 17.5f));
+        }
 
-        // Position base (platform)
-        baseSprite.setPosition(700, 100); // Adjust X and Y coordinates as needed
-        structure.setPositions(850, 130); // Set structure's blocks starting position
+        // Create structure bodies
+        structureBodies = new Array<>();
+        for (Sprite woodBlock : structure.getWoodBlocks()) {
+            structureBodies.add(createStaticBody(
+                    woodBlock.getX(), woodBlock.getY(),
+                    woodBlock.getWidth() / 2, woodBlock.getHeight() / 2
+            ));
+        }
+        for (Sprite glassBlock : structure.getGlassBlocks()) {
+            structureBodies.add(createStaticBody(
+                    glassBlock.getX(), glassBlock.getY(),
+                    glassBlock.getWidth() / 2, glassBlock.getHeight() / 2
+            ));
+        }
+        for (Sprite glassFBlock : structure.getGlassFBlocks()) {
+            structureBodies.add(createStaticBody(
+                    glassFBlock.getX(), glassFBlock.getY(),
+                    glassFBlock.getWidth() / 2, glassFBlock.getHeight() / 2
+            ));
+        }
+    }
+
+    private Body createKinematicBody(float x, float y, float radius) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.KinematicBody;
+        bodyDef.position.set(x / 100, y / 100); // Convert pixels to meters
+
+        CircleShape shape = new CircleShape();
+        shape.setRadius(radius / 100); // Convert to meters
+
+        Body body = world.createBody(bodyDef);
+        body.createFixture(shape, 1.0f);
+        shape.dispose();
+        return body;
+    }
+
+
+
+    private Body createDynamicBody(float x, float y, float radius) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.DynamicBody;
+        bodyDef.position.set(x / 100, y / 100);
+
+        CircleShape shape = new CircleShape();
+        shape.setRadius(radius / 100); // Convert to meters
+
+        Body body = world.createBody(bodyDef);
+        body.createFixture(shape, 1.0f);
+        shape.dispose();
+        return body;
+    }
+
+    private Body createStaticBody(float x, float y, float halfWidth, float halfHeight) {
+        BodyDef bodyDef = new BodyDef();
+        bodyDef.type = BodyDef.BodyType.StaticBody;
+        bodyDef.position.set(x / 100, y / 100); // Convert pixels to meters
+
+        PolygonShape shape = new PolygonShape();
+        shape.setAsBox(halfWidth / 100, halfHeight / 100);
+
+        Body body = world.createBody(bodyDef);
+        body.createFixture(shape, 0.0f); // Density = 0 for static bodies
+        shape.dispose();
+        return body;
     }
 
     private void setupUI() {
@@ -114,32 +197,41 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void show() {
-        // Initialize screen elements, if needed
-    }
-
-    @Override
     public void render(float delta) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // Check for launch input (space key for example)
+        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE)) {
+            birdBody.setType(BodyDef.BodyType.DynamicBody);
+            birdBody.applyForceToCenter(new Vector2(5, 10), true); // Simulate a launch force
+        }
+
+        // Step the physics simulation
+        world.step(1 / 60f, 6, 2);
+
+        // Sync bird position with its body
+        birdEntity.setPosition(birdBody.getPosition().x * 100 - 25, birdBody.getPosition().y * 100 - 25);
+
         batch.begin();
         bgSprite.draw(batch);
         baseSprite.draw(batch);
-        slingshotBaseSprite.draw(batch);  // Draw the slingshot base
+        slingshotBaseSprite.draw(batch);
         slingshotSprite.draw(batch);
         birdEntity.draw(batch);
 
-        // Render pigs
         for (Pig pig : pigEntities) {
             pig.render(batch);
         }
-
-        // Render the structure blocks
         structure.render(batch);
-
         batch.end();
-        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
+
+        stage.act(Math.min(delta, 1 / 30f));
         stage.draw();
+
+        // Optional: Debug renderer
+        debugRenderer.render(world, stage.getCamera().combined);
     }
+
 
     @Override
     public void resize(int width, int height) {
@@ -147,19 +239,16 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void hide() {
-        // Clean up resources if needed
-    }
+    public void show() {}
 
     @Override
-    public void pause() {
-        // Handle pause behavior if needed
-    }
+    public void hide() {}
 
     @Override
-    public void resume() {
-        // Handle resume behavior if needed
-    }
+    public void pause() {}
+
+    @Override
+    public void resume() {}
 
     @Override
     public void dispose() {
@@ -167,8 +256,10 @@ public class GameScreen implements Screen {
         backgroundTexture.dispose();
         slingshotTexture.dispose();
         baseTexture.dispose();
-        slingshotBaseTexture.dispose();  // Dispose of slingshot base texture
+        slingshotBaseTexture.dispose();
         stage.dispose();
         skin.dispose();
+        world.dispose();
+        debugRenderer.dispose();
     }
 }
