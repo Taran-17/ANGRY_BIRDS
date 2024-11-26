@@ -1,6 +1,7 @@
 package com.mygdx.angrybirdgame;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -14,16 +15,20 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.ObjectMap;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 
 public class GameScreen implements Screen {
+    private Sprite[] woodBlocks;
+    private Sprite[] glassBlocks;
+    private Sprite[] glassFBlocks;
+
     private final MyAngryBirds game;
     private final SpriteBatch batch;
     private final Texture backgroundTexture, slingshotTexture, baseTexture, slingshotBaseTexture;
     private final Sprite slingshotSprite, bgSprite, baseSprite, slingshotBaseSprite;
     private final bird birdEntity;
     private final Pig[] pigEntities;
-    private final Structure structure;
     private final Stage stage;
     private final Skin skin;
 
@@ -34,10 +39,14 @@ public class GameScreen implements Screen {
     private Body slingshotBody;
     private Array<Body> pigBodies;
     private Array<Body> structureBodies;
+    private ObjectMap<Sprite, Integer> blockHealthMap;
 
     public GameScreen(MyAngryBirds game) {
         this.game = game;
         batch = new SpriteBatch();
+
+        // Initialize block health map
+        blockHealthMap = new ObjectMap<>();
 
         // Initialize Box2D world
         world = new World(new Vector2(0, -9.8f), true);
@@ -59,7 +68,8 @@ public class GameScreen implements Screen {
         pigEntities = new Pig[2];
         pigEntities[0] = new Pig(750, 170);
         pigEntities[1] = new Pig(900, 270);
-        structure = new Structure(5, 3, 2);
+
+        initStructure(5, 3, 2);
 
         bgSprite.setSize(1280, 720);
         slingshotSprite.setSize(100, 150);
@@ -76,23 +86,81 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
     }
 
+    private void initStructure(int woodBlockCount, int glassBlockCount, int glassFBlockCount) {
+        woodBlocks = new Sprite[woodBlockCount];
+        glassBlocks = new Sprite[glassBlockCount];
+        glassFBlocks = new Sprite[glassFBlockCount];
+
+        for (int i = 0; i < woodBlockCount; i++) {
+            woodBlocks[i] = new Sprite(new Texture("wood.png"));
+            woodBlocks[i].setSize(50, 50);
+            blockHealthMap.put(woodBlocks[i], 100); // Wood block health: 100
+        }
+
+        for (int i = 0; i < glassBlockCount; i++) {
+            glassBlocks[i] = new Sprite(new Texture("GlassBlock.png"));
+            glassBlocks[i].setSize(40, 40);
+            blockHealthMap.put(glassBlocks[i], 50); // Glass block health: 50
+        }
+
+        for (int i = 0; i < glassFBlockCount; i++) {
+            glassFBlocks[i] = new Sprite(new Texture("GlassFBlock.png"));
+            glassFBlocks[i].setSize(50, 50);
+            blockHealthMap.put(glassFBlocks[i], 75); // Glass F block health: 75
+        }
+    }
+
+    private void updateBlockHealth() {
+        // Simulate block damage (e.g., via collision detection or random decrement)
+        for (ObjectMap.Entry<Sprite, Integer> entry : blockHealthMap.entries()) {
+            Sprite block = entry.key;
+            int health = entry.value;
+
+            // For demonstration: decrement health over time
+            health -= 1;
+
+            if (health <= 0) {
+                blockHealthMap.remove(block); // Remove block when health is zero
+            } else {
+                blockHealthMap.put(block, health); // Update block health
+            }
+        }
+    }
+
+
     private void initPositions() {
-        slingshotBaseSprite.setPosition(120, 80);
+        slingshotBaseSprite.setPosition(120, 90);
         slingshotSprite.setPosition(145, 130);
-        birdEntity.setPosition(160, 200);
+        birdEntity.setPosition(180, 230);
         baseSprite.setPosition(700, 100);
-        structure.setPositions(850, 130);
+
+        float startX = 850, startY = 130;
+
+        // Position wood blocks
+        for (int i = 0; i < woodBlocks.length; i++) {
+            woodBlocks[i].setPosition(startX + (i - 2) * woodBlocks[i].getWidth(), startY);
+        }
+
+        // Position glass blocks
+        for (int i = 0; i < glassBlocks.length; i++) {
+            glassBlocks[i].setPosition(startX + (i - 1) * glassBlocks[i].getWidth(),
+                    startY + woodBlocks[0].getHeight());
+        }
+
+        // Position glass F blocks
+        for (int i = 0; i < glassFBlocks.length; i++) {
+            glassFBlocks[i].setPosition(startX + (i) * glassFBlocks[i].getWidth(),
+                    startY + woodBlocks[0].getHeight() + glassBlocks[0].getHeight());
+        }
     }
 
     private void createPhysicsBodies() {
-        // Create bird body as kinematic initially (stable on slingshot)
         birdBody = createKinematicBody(
                 slingshotSprite.getX() + slingshotSprite.getWidth() / 2,
-                slingshotSprite.getY() + slingshotSprite.getHeight() - 25, // Place the bird above the slingshot
+                slingshotSprite.getY() + slingshotSprite.getHeight() - 25,
                 25
         );
 
-        // Create slingshot body
         slingshotBody = createStaticBody(
                 slingshotSprite.getX() + slingshotSprite.getWidth() / 2,
                 slingshotSprite.getY() + slingshotSprite.getHeight() / 2,
@@ -100,27 +168,25 @@ public class GameScreen implements Screen {
                 slingshotSprite.getHeight() / 2
         );
 
-        // Create pig bodies
         pigBodies = new Array<>();
         for (Pig pig : pigEntities) {
             pigBodies.add(createStaticBody(pig.getX(), pig.getY(), 17.5f, 17.5f));
         }
 
-        // Create structure bodies
         structureBodies = new Array<>();
-        for (Sprite woodBlock : structure.getWoodBlocks()) {
+        for (Sprite woodBlock : woodBlocks) {
             structureBodies.add(createStaticBody(
                     woodBlock.getX(), woodBlock.getY(),
                     woodBlock.getWidth() / 2, woodBlock.getHeight() / 2
             ));
         }
-        for (Sprite glassBlock : structure.getGlassBlocks()) {
+        for (Sprite glassBlock : glassBlocks) {
             structureBodies.add(createStaticBody(
                     glassBlock.getX(), glassBlock.getY(),
                     glassBlock.getWidth() / 2, glassBlock.getHeight() / 2
             ));
         }
-        for (Sprite glassFBlock : structure.getGlassFBlocks()) {
+        for (Sprite glassFBlock : glassFBlocks) {
             structureBodies.add(createStaticBody(
                     glassFBlock.getX(), glassFBlock.getY(),
                     glassFBlock.getWidth() / 2, glassFBlock.getHeight() / 2
@@ -196,21 +262,14 @@ public class GameScreen implements Screen {
         stage.addActor(pauseButton);
     }
 
-    @Override
     public void render(float delta) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Check for launch input (space key for example)
-        if (Gdx.input.isKeyJustPressed(com.badlogic.gdx.Input.Keys.SPACE)) {
-            birdBody.setType(BodyDef.BodyType.DynamicBody);
-            birdBody.applyForceToCenter(new Vector2(5, 10), true); // Simulate a launch force
-        }
-
-        // Step the physics simulation
+        // Update world physics
         world.step(1 / 60f, 6, 2);
 
-        // Sync bird position with its body
-        birdEntity.setPosition(birdBody.getPosition().x * 100 - 25, birdBody.getPosition().y * 100 - 25);
+        // Update block health
+        updateBlockHealth();
 
         batch.begin();
         bgSprite.draw(batch);
@@ -222,13 +281,27 @@ public class GameScreen implements Screen {
         for (Pig pig : pigEntities) {
             pig.render(batch);
         }
-        structure.render(batch);
+
+        // Draw blocks with remaining health
+        for (Sprite woodBlock : woodBlocks) {
+            if (blockHealthMap.containsKey(woodBlock)) {
+                woodBlock.draw(batch);
+            }
+        }
+        for (Sprite glassBlock : glassBlocks) {
+            if (blockHealthMap.containsKey(glassBlock)) {
+                glassBlock.draw(batch);
+            }
+        }
+        for (Sprite glassFBlock : glassFBlocks) {
+            if (blockHealthMap.containsKey(glassFBlock)) {
+                glassFBlock.draw(batch);
+            }
+        }
         batch.end();
 
         stage.act(Math.min(delta, 1 / 30f));
         stage.draw();
-
-        // Optional: Debug renderer
         debugRenderer.render(world, stage.getCamera().combined);
     }
 
@@ -252,6 +325,7 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
+        // Dispose of all resources explicitly
         batch.dispose();
         backgroundTexture.dispose();
         slingshotTexture.dispose();
@@ -261,5 +335,9 @@ public class GameScreen implements Screen {
         skin.dispose();
         world.dispose();
         debugRenderer.dispose();
+
+        // Clear block health map
+        blockHealthMap.clear();
     }
+
 }
