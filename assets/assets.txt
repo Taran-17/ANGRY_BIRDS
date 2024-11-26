@@ -1,5 +1,8 @@
 GlassBlock.png
 GlassFBlock.png
+background.mp3
+base.png
+bg.png
 bird.png
 gameBackground.png
 img.png
@@ -10,6 +13,7 @@ pause.png
 pig.png
 settings.png
 slingshot.png
+sticks.png
 win_background.png
 wood.png
 woodBlock.png
