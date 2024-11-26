@@ -16,9 +16,11 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 public class GameScreen implements Screen {
     private final MyAngryBirds game;
     private final SpriteBatch batch;
-    private final Texture backgroundTexture, birdTexture, pigTexture, slingshotTexture, woodBlockTexture, glassBlockTexture, glassFBlockTexture;
-    private final Sprite birdSprite, pigSprite, slingshotSprite, bgSprite;
-    private final Sprite[] woodBlocks, glassBlocks, glassFBlocks;
+    private final Texture backgroundTexture, slingshotTexture, baseTexture, slingshotBaseTexture;
+    private final Sprite slingshotSprite, bgSprite, baseSprite, slingshotBaseSprite;
+    private final bird birdEntity;
+    private final Pig[] pigEntities;
+    private final Structure structure; // Structure object to manage blocks
     private final Stage stage;
     private final Skin skin;
 
@@ -28,122 +30,71 @@ public class GameScreen implements Screen {
 
         // Load textures
         backgroundTexture = new Texture("gameBackground.png");
-        birdTexture = new Texture("bird.png");
-        pigTexture = new Texture("pig.png");
         slingshotTexture = new Texture("slingshot.png");
-        woodBlockTexture = new Texture("wood.png");
-        glassBlockTexture = new Texture("GlassBlock.png");
-        glassFBlockTexture = new Texture("GlassFBlock.png");
+        baseTexture = new Texture("base.png");
+        slingshotBaseTexture = new Texture("base.png");  // Slingshot base texture
 
         // Initialize sprites
         bgSprite = new Sprite(backgroundTexture);
-        birdSprite = new Sprite(birdTexture);
-        pigSprite = new Sprite(pigTexture);
         slingshotSprite = new Sprite(slingshotTexture);
+        baseSprite = new Sprite(baseTexture);
+        slingshotBaseSprite = new Sprite(slingshotBaseTexture);  // Slingshot base sprite
 
-        // Create an array for multiple wood, glass, and glassF blocks
-        int numberOfWoodBlocks = 5;
-        int numberOfGlassBlocks = 3;
-        int numberOfGlassFBlocks = 2;
+        // Initialize bird entity
+        birdEntity = new bird(new Sprite(new Texture("bird.png")));
+        birdEntity.setSize(50, 50);
 
-        woodBlocks = new Sprite[numberOfWoodBlocks];
-        for (int i = 0; i < numberOfWoodBlocks; i++) {
-            woodBlocks[i] = new Sprite(woodBlockTexture);
-        }
+        // Initialize pig entities
+        pigEntities = new Pig[2];
+        pigEntities[0] = new Pig(750, 170);
+        pigEntities[1] = new Pig(900, 270);
 
-        glassBlocks = new Sprite[numberOfGlassBlocks];
-        for (int i = 0; i < numberOfGlassBlocks; i++) {
-            glassBlocks[i] = new Sprite(glassBlockTexture);
-        }
+        // Initialize the Structure (with 5 wood blocks, 3 glass blocks, and 2 glass F blocks)
+        structure = new Structure(5, 3, 2);
 
-        glassFBlocks = new Sprite[numberOfGlassFBlocks];
-        for (int i = 0; i < numberOfGlassFBlocks; i++) {
-            glassFBlocks[i] = new Sprite(glassFBlockTexture);
-        }
-
-        // Set sizes
+        // Set sizes for sprites
         bgSprite.setSize(1280, 720);
-        birdSprite.setSize(50, 50);
-        pigSprite.setSize(55, 55);
         slingshotSprite.setSize(100, 150);
-        for (Sprite woodBlock : woodBlocks) {
-            woodBlock.setSize(50, 50);
-        }
-        for (Sprite glassBlock : glassBlocks) {
-            glassBlock.setSize(40, 40);
-        }
-        for (Sprite glassFBlock : glassFBlocks) {
-            glassFBlock.setSize(50, 50);
-        }
+        baseSprite.setSize(400, 50);
+        slingshotBaseSprite.setSize(150, 50); // Adjust size of slingshot base as needed
 
+        // Initialize positions
         initPositions();
 
+        // Stage and UI setup
         stage = new Stage(new ScreenViewport());
         skin = new Skin(Gdx.files.internal("uiskin.json"));
-
         setupUI();
 
         Gdx.input.setInputProcessor(stage);
     }
 
     private void initPositions() {
-        // Position slingshot
-        slingshotSprite.setPosition(100, 50);
+        // Position slingshot base (on the ground)
+        slingshotBaseSprite.setPosition(120, 80);  // Adjust position as needed
 
-        // Position bird on slingshot
-        birdSprite.setPosition(slingshotSprite.getX() + slingshotSprite.getWidth() / 2 - birdSprite.getWidth() / 2,
-                slingshotSprite.getY() + slingshotSprite.getHeight() - birdSprite.getHeight() / 2);
+        int base_x = 100;
+        int base_y = 70;
 
-        // Base position for the structure
-        float baseX = 800;
-        float baseY = 100;
+        // Position slingshot (above the base)
+        slingshotSprite.setPosition(base_x + slingshotBaseSprite.getWidth() / 2 - slingshotSprite.getWidth() / 2,
+                base_y + slingshotBaseSprite.getHeight());
 
-        // Position the bottom wood blocks as a base
-        for (int i = 0; i < 3; i++) {
-            woodBlocks[i].setPosition(baseX + i * woodBlocks[i].getWidth(), baseY);
-        }
+        // Position bird on the slingshot
+        birdEntity.setPosition(slingshotSprite.getX() + slingshotSprite.getWidth() / 2 - birdEntity.getSprite().getWidth() / 2,
+                slingshotSprite.getY() + slingshotSprite.getHeight() - birdEntity.getSprite().getHeight() / 2);
 
-        // Place the pigs on top of the bottom wood blocks
-        for (int i = 0; i < 2; i++) {
-            pigSprite.setPosition(baseX + woodBlocks[i].getWidth() / 2 + i * woodBlocks[i].getWidth() - pigSprite.getWidth() / 2,
-                    baseY + woodBlocks[i].getHeight());
-        }
-
-        // Add glass blocks above the pigs for reinforcement
-        for (int i = 0; i < 2; i++) {
-            glassBlocks[i].setPosition(baseX + i * glassBlocks[i].getWidth() + woodBlocks[i].getWidth() / 2,
-                    baseY + woodBlocks[0].getHeight() + pigSprite.getHeight());
-        }
-
-        // Create vertical wood blocks as support pillars
-        for (int i = 0; i < 2; i++) {
-            woodBlocks[i + 3].setPosition(baseX + i * 2 * woodBlocks[i].getWidth(),
-                    baseY + glassBlocks[i].getHeight() + woodBlocks[0].getHeight() + pigSprite.getHeight());
-        }
-
-        // Add a top wood block across the two vertical supports
-        woodBlocks[4].setPosition(baseX + woodBlocks[0].getWidth(),
-                baseY + 2 * woodBlocks[0].getHeight() + pigSprite.getHeight() + glassBlocks[0].getHeight());
-
-        // Add glass F blocks as decorative roofs
-        for (int i = 0; i < glassFBlocks.length; i++) {
-            glassFBlocks[i].setPosition(baseX + i * glassFBlocks[i].getWidth(),
-                    baseY + 2 * woodBlocks[0].getHeight() + glassBlocks[0].getHeight() + pigSprite.getHeight());
-        }
+        // Position base (platform)
+        baseSprite.setPosition(700, 100); // Adjust X and Y coordinates as needed
+        structure.setPositions(850, 130); // Set structure's blocks starting position
     }
-
-
 
     private void setupUI() {
         TextButton settingsButton = new TextButton("Settings", skin);
         TextButton pauseButton = new TextButton("Pause", skin);
-        TextButton triggerWinButton = new TextButton("Win", skin);
-        TextButton triggerLoseButton = new TextButton("Lose", skin);
 
         pauseButton.setPosition(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 50);
         settingsButton.setPosition(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 100);
-        triggerWinButton.setPosition(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 150);
-        triggerLoseButton.setPosition(Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 200);
 
         settingsButton.addListener(new ClickListener() {
             @Override
@@ -157,52 +108,37 @@ public class GameScreen implements Screen {
                 game.setScreen(new PauseScreen(game));
             }
         });
-        triggerWinButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new WinScreen(game));
-            }
-        });
-        triggerLoseButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new LoseScreen(game));
-            }
-        });
 
-        stage.addActor(pauseButton);
         stage.addActor(settingsButton);
-        stage.addActor(triggerWinButton);
-        stage.addActor(triggerLoseButton);
+        stage.addActor(pauseButton);
     }
 
     @Override
     public void show() {
+        // Initialize screen elements, if needed
     }
 
     @Override
     public void render(float delta) {
-        Gdx.gl.glClearColor(1, 1, 1, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
         batch.begin();
         bgSprite.draw(batch);
+        baseSprite.draw(batch);
+        slingshotBaseSprite.draw(batch);  // Draw the slingshot base
         slingshotSprite.draw(batch);
-        for (Sprite woodBlock : woodBlocks) {
-            woodBlock.draw(batch);
-        }
-        for (Sprite glassBlock : glassBlocks) {
-            glassBlock.draw(batch);
-        }
-        for (Sprite glassFBlock : glassFBlocks) {
-            glassFBlock.draw(batch);
-        }
-        pigSprite.draw(batch);
-        birdSprite.draw(batch);
-        batch.end();
+        birdEntity.draw(batch);
 
-        stage.act(Gdx.graphics.getDeltaTime());
-        stage.draw();  // Draw the UI
+        // Render pigs
+        for (Pig pig : pigEntities) {
+            pig.render(batch);
+        }
+
+        // Render the structure blocks
+        structure.render(batch);
+
+        batch.end();
+        stage.act(Math.min(Gdx.graphics.getDeltaTime(), 1 / 30f));
+        stage.draw();
     }
 
     @Override
@@ -211,28 +147,28 @@ public class GameScreen implements Screen {
     }
 
     @Override
+    public void hide() {
+        // Clean up resources if needed
+    }
+
+    @Override
     public void pause() {
+        // Handle pause behavior if needed
     }
 
     @Override
     public void resume() {
-    }
-
-    @Override
-    public void hide() {
+        // Handle resume behavior if needed
     }
 
     @Override
     public void dispose() {
+        batch.dispose();
         backgroundTexture.dispose();
-        birdTexture.dispose();
-        pigTexture.dispose();
         slingshotTexture.dispose();
-        woodBlockTexture.dispose();
-        glassBlockTexture.dispose();
-        glassFBlockTexture.dispose();
+        baseTexture.dispose();
+        slingshotBaseTexture.dispose();  // Dispose of slingshot base texture
         stage.dispose();
         skin.dispose();
-        batch.dispose();
     }
 }
